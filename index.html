@@ -3,11 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Live Student Code Editor</title>
-    
-    <!-- Lightweight Syntax Highlighting styles from PrismJS -->
-    <link rel="stylesheet" href="https://cloudflare.com">
-    
+    <title>Bamextech Code Editor</title>
     <style>
       * {
         box-sizing: border-box;
@@ -64,6 +60,7 @@
         flex: 1;
         display: flex;
         flex-direction: column;
+        height: 50%;
       }
       .editor-label {
         background: #2d2d37;
@@ -75,12 +72,13 @@
         font-weight: 600;
       }
       
-      /* New Overlay Wrapper to enable Syntax Highlighting over Textarea */
+      /* Layout Workspace and Stack Layers */
       .editor-wrapper {
         position: relative;
         flex: 1;
         width: 100%;
-        height: 100%;
+        overflow: hidden;
+        background: #1e1e24;
       }
       textarea, .highlight-layer {
         position: absolute;
@@ -89,35 +87,37 @@
         width: 100%;
         height: 100%;
         padding: 15px;
-        font-family: "Courier New", Courier, monospace;
-        font-size: 1rem;
-        line-height: 1.5;
+        font-family: "Courier New", Courier, monospace !important;
+        font-size: 1rem !important;
+        line-height: 1.5 !important;
         border: none;
         resize: none;
         outline: none;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        overflow-y: auto;
+        white-space: pre;
+        overflow: auto;
+        margin: 0;
       }
       textarea {
-        background: transparent;
-        color: transparent; /* Hides default ugly text */
-        caret-color: #fff; /* Keeps the blinking typing cursor visible */
+        background: transparent !important;
+        color: transparent !important; /* Hides raw unformatted text layout overlay */
+        caret-color: #ffffff !important; /* Keeps typing line cursor perfectly visible */
         z-index: 2;
       }
       .highlight-layer {
-        background: #1e1e24;
         z-index: 1;
-        pointer-events: none; /* Allows clicks to pass directly to textarea */
-      }
-      .highlight-layer pre, .highlight-layer code {
-        font-family: "Courier New", Courier, monospace !important;
-        font-size: 1rem !important;
-        background: transparent !important;
-        padding: 0 !important;
-        margin: 0 !important;
+        pointer-events: none;
+        background: #1e1e24 !important;
+        color: #f8f8f2; /* Default fallback code font color */
       }
       
+      /* Explicit Workspace Color Highlight Themes (VS-Code style) */
+      .hl-tag      { color: #ff5575; font-weight: bold; } /* html structural element tag markers */
+      .hl-attr     { color: #50fa7b; } /* attributes inside open elements tags */
+      .hl-string   { color: #f1fa8c; } /* raw string parameters inside code properties */
+      .hl-selector { color: #50fa7b; font-weight: bold; } /* css selectors classes hooks */
+      .hl-prop     { color: #8be9fd; } /* css formatting layout rule keywords */
+      .hl-val      { color: #bd93f9; } /* specific css sizing value constraints */
+
       .html-box {
         border-bottom: 2px solid #2d2d37;
       }
@@ -137,27 +137,28 @@
   </head>
   <body>
     <header>
-      <div class="logo">💻 Student Code Playground</div>
+      <div class="logo">💻 Bamextech Codepen</div>
       <button id="run-btn" class="run-btn">Run Code 🚀</button>
     </header>
 
     <div class="container">
-      <!-- Input section for code -->
       <div class="workspace">
+        <!-- HTML Editor -->
         <div class="editor-box html-box">
           <div class="editor-label">HTML (Structure)</div>
           <div class="editor-wrapper">
-            <textarea id="html-code" spellcheck="false"><h1>Welcome to Code Class!</h1>
+            <textarea id="html-code" spellcheck="false" autocomplete="off"><h1>Welcome to Code Class!</h1>
 <p>Modify the HTML or CSS boxes to see changes instantly.</p>
 <button onclick="alert('Hello from the preview!')">Click Me</button></textarea>
-            <div class="highlight-layer"><pre><code id="html-highlight" class="language-html"></code></pre></div>
+            <div class="highlight-layer" id="html-highlight"></div>
           </div>
         </div>
         
+        <!-- CSS Editor -->
         <div class="editor-box css-box">
           <div class="editor-label">CSS (Styling)</div>
           <div class="editor-wrapper">
-            <textarea id="css-code" spellcheck="false">body {
+            <textarea id="css-code" spellcheck="false" autocomplete="off">body {
   font-family: sans-serif;
   padding: 20px;
   text-align: center;
@@ -175,12 +176,12 @@ button {
   border-radius: 5px;
   cursor: pointer;
 }</textarea>
-            <div class="highlight-layer"><pre><code id="css-highlight" class="language-css"></code></pre></div>
+            <div class="highlight-layer" id="css-highlight"></div>
           </div>
         </div>
       </div>
 
-      <!-- Output window -->
+      <!-- Live Window Display -->
       <div class="preview-pane">
         <div class="editor-label" style="background: #13131a; border-bottom: 2px solid #2d2d37">
           Live Preview
@@ -189,8 +190,6 @@ button {
       </div>
     </div>
 
-    <!-- Core Token Parser script -->
-    <script src="https://cloudflare.com"></script>
     <script>
       const htmlEditor = document.getElementById("html-code");
       const cssEditor = document.getElementById("css-code");
@@ -199,19 +198,26 @@ button {
       const previewFrame = document.getElementById("preview-window");
       const runButton = document.getElementById("run-btn");
 
-      // Function to render the syntax colors
-      function applySyntaxHighlighting() {
-        // Handle HTML formatting
-        let htmlText = htmlEditor.value;
-        if(htmlText.endsWith("\n")) { htmlText += " "; }
-        htmlHighlight.textContent = htmlText;
-        Prism.highlightElement(htmlHighlight);
+      // Custom Lightweight RegEx Parser to prevent theme bleeding
+      function updateSyntaxHighlighting() {
+        // 1. Process HTML syntax tokens
+        let html = htmlEditor.value;
+        // Escape standard layout symbols safely
+        html = html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        // Apply color code wraps to element markup structures
+        html = html.replace(/(&lt;\/?[a-zA-Z1-6]+)(\s|&gt;)/g, '<span class="hl-tag">$1</span>$2');
+        html = html.replace(/(\s[a-zA-Z-]+)=/g, ' <span class="hl-attr">$1</span>=');
+        html = html.replace(/(".*?")/g, '<span class="hl-string">$1</span>');
+        htmlHighlight.innerHTML = html;
 
-        // Handle CSS formatting
-        let cssText = cssEditor.value;
-        if(cssText.endsWith("\n")) { cssText += " "; }
-        cssHighlight.textContent = cssText;
-        Prism.highlightElement(cssHighlight);
+        // 2. Process CSS syntax tokens
+        let css = cssEditor.value;
+        css = css.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        // Color structural selectors rules blocks properties
+        css = css.replace(/([a-zA-Z0-9-._#\s]+)\s*\{/g, '<span class="hl-selector">$1</span>{');
+        css = css.replace(/([a-zA-Z-]+)\s*:/g, '<span class="hl-prop">$1</span>:');
+        css = css.replace(/:\s*([^;]+);/g, ': <span class="hl-val">$1</span>;');
+        cssHighlight.innerHTML = css;
       }
 
       // Feature: Automatic Tag Closing for HTML
@@ -221,7 +227,6 @@ button {
           const end = this.selectionEnd;
           const text = this.value;
           
-          // Find the last opened tag preceding the cursor
           const beforeCursor = text.substring(0, start);
           const tagMatch = beforeCursor.match(/<([a-zA-Z1-6]+)(?:\s+[^>]*)*$/);
           
@@ -229,54 +234,68 @@ button {
             const tagName = tagMatch[1];
             e.preventDefault();
             
-            // Insert the closing tag pair cleanly
             this.value = text.substring(0, start) + ">" + "</" + tagName + ">" + text.substring(end);
             this.selectionStart = this.selectionEnd = start + 1;
-            applySyntaxHighlighting();
+            
+            updateSyntaxHighlighting();
+            updatePreview();
           }
         }
       });
 
-      // Synchronize box scrolling actions
+      // Maintain viewport alignment configurations during typing/scrolling events
       htmlEditor.addEventListener("scroll", function() {
-        htmlHighlight.parentElement.scrollTop = htmlEditor.scrollTop;
-        htmlHighlight.parentElement.scrollLeft = htmlEditor.scrollLeft;
+        htmlHighlight.scrollTop = htmlEditor.scrollTop;
+        htmlHighlight.scrollLeft = htmlEditor.scrollLeft;
       });
       cssEditor.addEventListener("scroll", function() {
-        cssHighlight.parentElement.scrollTop = cssEditor.scrollTop;
-        cssHighlight.parentElement.scrollLeft = cssEditor.scrollLeft;
+        cssHighlight.scrollTop = cssEditor.scrollTop;
+        cssHighlight.scrollLeft = cssEditor.scrollLeft;
       });
 
+      // Unified Live Preview Updates Compiler
       function updatePreview() {
         const htmlContent = htmlEditor.value;
         const cssContent = cssEditor.value;
 
         const completeSource = `
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <style>${cssContent}</style>
-                </head>
-                <body>
-                    ${htmlContent}
-                </body>
-                </html>
-            `;
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <style>${cssContent}</style>
+          </head>
+          <body>
+              ${htmlContent}
+          </body>
+          </html>
+        `;
 
-        const targetDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-        targetDoc.open();
-        targetDoc.write(completeSource);
-        targetDoc.close();
+        try {
+          const targetDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+          targetDoc.open();
+          targetDoc.write(completeSource);
+          targetDoc.close();
+        } catch (err) {
+          console.error("Preview tracking compilation bypass err:", err);
+        }
       }
 
-      // Live update listening hooks
-      htmlEditor.addEventListener("input", () => { applySyntaxHighlighting(); updatePreview(); });
-      cssEditor.addEventListener("input", () => { applySyntaxHighlighting(); updatePreview(); });
+      // Workspace instant update listener targets
+      htmlEditor.addEventListener("input", function() {
+        updateSyntaxHighlighting();
+        updatePreview();
+      });
+
+      cssEditor.addEventListener("input", function() {
+        updateSyntaxHighlighting();
+        updatePreview();
+      });
+
       runButton.addEventListener("click", updatePreview);
 
-      // Initial deployment call setup
-      applySyntaxHighlighting();
+      // Boot initialization scripts triggers
+      updateSyntaxHighlighting();
       updatePreview();
     </script>
   </body>
