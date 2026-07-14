@@ -1,185 +1,157 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Live Student Code Editor</title>
-    <!-- Load AMD Loader from CDNJS -->
-    <script src="https://cloudflare.com"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Student Code Editor</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #1e1e24;
-            color: #fff;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        header {
-            background: #13131a;
-            height: 55px;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #2d2d37;
-        }
-        .logo {
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-        .run-btn {
-            background: #2ecc71;
-            color: #fff;
-            border: none;
-            padding: 8px 18px;
-            font-size: 0.95rem;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-        .run-btn:hover {
-            background: #27ae60;
-        }
-        .container {
-            display: flex;
-            flex: 1;
-            height: calc(100vh - 55px);
-            width: 100vw;
-        }
-        .workspace {
-            width: 50%;
-            display: grid;
-            grid-template-rows: 1fr 1fr;
-            border-right: 2px solid #2d2d37;
-            height: 100%;
-        }
-        .editor-box {
-            display: grid;
-            grid-template-rows: 35px 1fr;
-            height: 100%;
-            overflow: hidden;
-        }
-        .editor-label {
-            background: #2d2d37;
-            padding: 0 15px;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #a0a0b0;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        .editor-container {
-            width: 100%;
-            height: 100%;
-            min-height: 0;
-            overflow: hidden;
-        }
-        .html-box {
-            border-bottom: 2px solid #2d2d37;
-        }
-        .preview-pane {
-            width: 50%;
-            background: #ffffff;
-            display: grid;
-            grid-template-rows: 35px 1fr;
-            height: 100%;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background: #ffffff;
-        }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #1e1e24;
+        color: #fff;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      header {
+        background: #13131a;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #2d2d37;
+      }
+      .logo {
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
+      .run-btn {
+        background: #2ecc71;
+        color: #fff;
+        border: none;
+        padding: 8px 18px;
+        font-size: 0.95rem;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+      .run-btn:hover {
+        background: #27ae60;
+      }
+      .container {
+        display: flex;
+        flex: 1;
+        height: calc(100vh - 58px);
+      }
+      .workspace {
+        width: 50%;
+        display: flex;
+        flex-direction: column;
+        border-right: 2px solid #2d2d37;
+      }
+      .editor-box {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .editor-label {
+        background: #2d2d37;
+        padding: 8px 15px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #a0a0b0;
+        font-weight: 600;
+      }
+      textarea {
+        flex: 1;
+        background: #1e1e24;
+        color: #f8f8f2;
+        border: none;
+        padding: 15px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 1rem;
+        resize: none;
+        outline: none;
+        line-height: 1.5;
+      }
+      textarea:focus {
+        background: #23232c;
+      }
+      .html-box {
+        border-bottom: 2px solid #2d2d37;
+      }
+      .preview-pane {
+        width: 50%;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+      }
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: #ffffff;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <header>
-        <div class="logo">💻 Student Code Playground</div>
-        <button id="run-btn" class="run-btn">Run Code 🚀</button>
+      <div class="logo">💻 Student Code Playground</div>
+      <button id="run-btn" class="run-btn">Run Code 🚀</button>
     </header>
 
     <div class="container">
-        <div class="workspace">
-            <div class="editor-box html-box">
-                <div class="editor-label">HTML (Structure)</div>
-                <div id="html-editor" class="editor-container"></div>
-            </div>
-            <div class="editor-box css-box">
-                <div class="editor-label">CSS (Styling)</div>
-                <div id="css-editor" class="editor-container"></div>
-            </div>
+      <!-- Input section for code -->
+      <div class="workspace">
+        <div class="editor-box html-box">
+          <div class="editor-label">HTML (Structure)</div>
+          <textarea id="html-code">
+<h1>Welcome to Code Class!</h1>&#10;<p>Modify the HTML or CSS boxes to see changes instantly.</p>&#10;<button onclick="alert('Hello from the preview!')">Click Me</button></textarea
+          >
         </div>
+        <div class="editor-box css-box">
+          <div class="editor-label">CSS (Styling)</div>
+          <textarea id="css-code">
+body {&#10;  font-family: sans-serif;&#10;  padding: 20px;&#10;  text-align: center;&#10;}&#10;&#10;h1 {&#10;  color: #6c5ce7;&#10;}&#10;&#10;button {&#10;  background: #6c5ce7;&#10;  color: white;&#10;  border: none;&#10;  padding: 10px 20px;&#10;  border-radius: 5px;&#10;  cursor: pointer;&#10;}</textarea
+          >
+        </div>
+      </div>
 
-        <div class="preview-pane">
-            <div class="editor-label" style="background: #13131a; border-bottom: 2px solid #2d2d37;">Live Preview</div>
-            <iframe id="preview-window"></iframe>
+      <!-- Output window -->
+      <div class="preview-pane">
+        <div
+          class="editor-label"
+          style="background: #13131a; border-bottom: 2px solid #2d2d37"
+        >
+          Live Preview
         </div>
+        <iframe id="preview-window"></iframe>
+      </div>
     </div>
 
     <script>
-        const CDN_BASE = 'https://cloudflare.com';
-        
-        // FIX: Route worker scripts through safe inline Blobs to stop cross-domain security bans
-        window.MonacoEnvironment = {
-            getWorkerUrl: function (workerId, label) {
-                const workerCode = `self.MonacoEnvironment = { baseUrl: '${CDN_BASE}' }; importScripts('${CDN_BASE}/base/worker/workerMain.js');`;
-                return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(workerCode);
-            }
-        };
+      const htmlEditor = document.getElementById("html-code");
+      const cssEditor = document.getElementById("css-code");
+      const previewFrame = document.getElementById("preview-window");
+      const runButton = document.getElementById("run-btn");
 
-        require.config({ paths: { 'vs': CDN_BASE } });
+      function updatePreview() {
+        const htmlContent = htmlEditor.value;
+        const cssContent = cssEditor.value;
 
-        let htmlEditorInstance, cssEditorInstance;
-
-        require(['vs/editor/editor.main'], function() {
-            
-            htmlEditorInstance = monaco.editor.create(document.getElementById('html-editor'), {
-                value: `<h1>Welcome to Code Class!</h1>\n<p>Modify the HTML or CSS boxes to see changes instantly.</p>\n<button onclick="alert('Hello from the preview!')">Click Me</button>`,
-                language: 'html',
-                theme: 'vs-dark',
-                automaticLayout: true,
-                autoClosingTags: true,
-                fontSize: 14,
-                minimap: { enabled: false }
-            });
-
-            cssEditorInstance = monaco.editor.create(document.getElementById('css-editor'), {
-                value: `body {\n  font-family: sans-serif;\n  padding: 20px;\n  text-align: center;\n}\n\nh1 {\n  color: #6c5ce7;\n}\n\nbutton {\n  background: #6c5ce7;\n  color: white;\n  border: none;\n  padding: 10px 20px;\n  border-radius: 5px;\n  cursor: pointer;\n}`,
-                language: 'css',
-                theme: 'vs-dark',
-                automaticLayout: true,
-                fontSize: 14,
-                minimap: { enabled: false }
-            });
-
-            updatePreview();
-
-            // Set up active input listeners so it updates instantly on typing
-            htmlEditorInstance.onDidChangeModelContent(updatePreview);
-            cssEditorInstance.onDidChangeModelContent(updatePreview);
-        });
-
-        const previewFrame = document.getElementById('preview-window');
-        const runButton = document.getElementById('run-btn');
-
-        function updatePreview() {
-            if (!htmlEditorInstance || !cssEditorInstance) return;
-
-            const htmlContent = htmlEditorInstance.getValue();
-            const cssContent = cssEditorInstance.getValue();
-            
-            const completeSource = `
+        // Build the document structure combining both inputs
+        const completeSource = `
                 <!DOCTYPE html>
                 <html lang="en">
                 <head>
@@ -191,14 +163,22 @@
                 </body>
                 </html>
             `;
-            
-            const targetDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-            targetDoc.open();
-            targetDoc.write(completeSource);
-            targetDoc.close();
-        }
 
-        runButton.addEventListener('click', updatePreview);
+        // Write directly to the iframe document object
+        const targetDoc =
+          previewFrame.contentDocument || previewFrame.contentWindow.document;
+        targetDoc.open();
+        targetDoc.write(completeSource);
+        targetDoc.close();
+      }
+
+      // Action triggers: typing in boxes or clicking the button
+      htmlEditor.addEventListener("input", updatePreview);
+      cssEditor.addEventListener("input", updatePreview);
+      runButton.addEventListener("click", updatePreview);
+
+      // Initial setup run
+      updatePreview();
     </script>
-</body>
+  </body>
 </html>
