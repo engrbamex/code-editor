@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pro Live Student Code Editor</title>
+    <!-- Load VS Code's Monaco Editor Engine Core -->
+    <script src="https://cloudflare.com"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #1e1e24;
+        color: #fff;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      header {
+        background: #13131a;
+        height: 55px;
+        padding: 0 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #2d2d37;
+      }
+      .logo {
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
+      .run-btn {
+        background: #2ecc71;
+        color: #fff;
+        border: none;
+        padding: 8px 18px;
+        font-size: 0.95rem;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+      .run-btn:hover {
+        background: #27ae60;
+      }
+      .container {
+        display: flex;
+        flex: 1;
+        height: calc(100vh - 55px);
+        width: 100vw;
+      }
+      .workspace {
+        width: 50%;
+        display: grid;
+        grid-template-rows: 1fr 1fr; /* Splits space evenly into 50% heights */
+        border-right: 2px solid #2d2d37;
+        height: 100%;
+      }
+      .editor-box {
+        display: grid;
+        grid-template-rows: 35px 1fr; /* Fixed height label, remaining space for engine */
+        height: 100%;
+        overflow: hidden;
+      }
+      .editor-label {
+        background: #2d2d37;
+        padding: 0 15px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #a0a0b0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+      }
+      /* Fixed: Force container wrapper to explicitly handle layout dimensions */
+      .editor-container {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+      }
+      .html-box {
+        border-bottom: 2px solid #2d2d37;
+      }
+      .preview-pane {
+        width: 50%;
+        background: #ffffff;
+        display: grid;
+        grid-template-rows: 35px 1fr;
+        height: 100%;
+      }
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">💻 Student Code Playground</div>
+      <button id="run-btn" class="run-btn">Run Code 🚀</button>
+    </header>
+
+    <div class="container">
+      <!-- Input section for Monaco editors -->
+      <div class="workspace">
+        <div class="editor-box html-box">
+          <div class="editor-label">HTML (Structure)</div>
+          <div id="html-editor" class="editor-container"></div>
+        </div>
+        <div class="editor-box css-box">
+          <div class="editor-label">CSS (Styling)</div>
+          <div id="css-editor" class="editor-container"></div>
+        </div>
+      </div>
+
+      <!-- Output window -->
+      <div class="preview-pane">
+        <div
+          class="editor-label"
+          style="background: #13131a; border-bottom: 2px solid #2d2d37"
+        >
+          Live Preview
+        </div>
+        <iframe id="preview-window"></iframe>
+      </div>
+    </div>
+
+    <script>
+      // Set up loader mapping instructions
+      require.config({ paths: { vs: "https://cloudflare.com" } });
+
+      let htmlEditorInstance, cssEditorInstance;
+
+      // Initialize Monaco Editors
+      require(["vs/editor/editor.main"], function () {
+        // Configure HTML Editor
+        htmlEditorInstance = monaco.editor.create(
+          document.getElementById("html-editor"),
+          {
+            value: `<h1>Welcome to Code Class!</h1>\n<p>Modify the HTML or CSS boxes to see changes instantly.</p>\n<button onclick="alert('Hello from the preview!')">Click Me</button>`,
+            language: "html",
+            theme: "vs-dark",
+            automaticLayout: true, // Forces editor to recalculate internal click boxes
+            autoClosingTags: true,
+            fontSize: 14,
+            minimap: { enabled: false },
+          },
+        );
+
+        // Configure CSS Editor
+        cssEditorInstance = monaco.editor.create(
+          document.getElementById("css-editor"),
+          {
+            value: `body {\n  font-family: sans-serif;\n  padding: 20px;\n  text-align: center;\n}\n\nh1 {\n  color: #6c5ce7;\n}\n\nbutton {\n  background: #6c5ce7;\n  color: white;\n  border: none;\n  padding: 10px 20px;\n  border-radius: 5px;\n  cursor: pointer;\n}`,
+            language: "css",
+            theme: "vs-dark",
+            automaticLayout: true,
+            fontSize: 14,
+            minimap: { enabled: false },
+          },
+        );
+
+        // Run initial preview render compile setup
+        updatePreview();
+
+        // Dynamic background tracking update triggers
+        htmlEditorInstance.onDidChangeModelContent(updatePreview);
+        cssEditorInstance.onDidChangeModelContent(updatePreview);
+      });
+
+      const previewFrame = document.getElementById("preview-window");
+      const runButton = document.getElementById("run-btn");
+
+      function updatePreview() {
+        if (!htmlEditorInstance || !cssEditorInstance) return;
+
+        const htmlContent = htmlEditorInstance.getValue();
+        const cssContent = cssEditorInstance.getValue();
+
+        const completeSource = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <style>${cssContent}</style>
+                </head>
+                <body>
+                    ${htmlContent}
+                </body>
+                </html>
+            `;
+
+        const targetDoc =
+          previewFrame.contentDocument || previewFrame.contentWindow.document;
+        targetDoc.open();
+        targetDoc.write(completeSource);
+        targetDoc.close();
+      }
+
+      // Attach action directly onto header element button
+      runButton.addEventListener("click", updatePreview);
+    </script>
+  </body>
+</html>
