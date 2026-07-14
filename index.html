@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Live Student Code Editor</title>
+    
+    <!-- Lightweight Syntax Highlighting styles from PrismJS -->
+    <link rel="stylesheet" href="https://cloudflare.com">
+    
     <style>
       * {
         box-sizing: border-box;
@@ -11,10 +15,7 @@
         padding: 0;
       }
       body {
-        font-family:
-          system-ui,
-          -apple-system,
-          sans-serif;
+        font-family: system-ui, -apple-system, sans-serif;
         background: #1e1e24;
         color: #fff;
         height: 100vh;
@@ -73,21 +74,50 @@
         color: #a0a0b0;
         font-weight: 600;
       }
-      textarea {
+      
+      /* New Overlay Wrapper to enable Syntax Highlighting over Textarea */
+      .editor-wrapper {
+        position: relative;
         flex: 1;
-        background: #1e1e24;
-        color: #f8f8f2;
-        border: none;
+        width: 100%;
+        height: 100%;
+      }
+      textarea, .highlight-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         padding: 15px;
         font-family: "Courier New", Courier, monospace;
         font-size: 1rem;
+        line-height: 1.5;
+        border: none;
         resize: none;
         outline: none;
-        line-height: 1.5;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-y: auto;
       }
-      textarea:focus {
-        background: #23232c;
+      textarea {
+        background: transparent;
+        color: transparent; /* Hides default ugly text */
+        caret-color: #fff; /* Keeps the blinking typing cursor visible */
+        z-index: 2;
       }
+      .highlight-layer {
+        background: #1e1e24;
+        z-index: 1;
+        pointer-events: none; /* Allows clicks to pass directly to textarea */
+      }
+      .highlight-layer pre, .highlight-layer code {
+        font-family: "Courier New", Courier, monospace !important;
+        font-size: 1rem !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      
       .html-box {
         border-bottom: 2px solid #2d2d37;
       }
@@ -116,41 +146,111 @@
       <div class="workspace">
         <div class="editor-box html-box">
           <div class="editor-label">HTML (Structure)</div>
-          <textarea id="html-code">
-<h1>Welcome to Code Class!</h1>&#10;<p>Modify the HTML or CSS boxes to see changes instantly.</p>&#10;<button onclick="alert('Hello from the preview!')">Click Me</button></textarea
-          >
+          <div class="editor-wrapper">
+            <textarea id="html-code" spellcheck="false"><h1>Welcome to Code Class!</h1>
+<p>Modify the HTML or CSS boxes to see changes instantly.</p>
+<button onclick="alert('Hello from the preview!')">Click Me</button></textarea>
+            <div class="highlight-layer"><pre><code id="html-highlight" class="language-html"></code></pre></div>
+          </div>
         </div>
+        
         <div class="editor-box css-box">
           <div class="editor-label">CSS (Styling)</div>
-          <textarea id="css-code">
-body {&#10;  font-family: sans-serif;&#10;  padding: 20px;&#10;  text-align: center;&#10;}&#10;&#10;h1 {&#10;  color: #6c5ce7;&#10;}&#10;&#10;button {&#10;  background: #6c5ce7;&#10;  color: white;&#10;  border: none;&#10;  padding: 10px 20px;&#10;  border-radius: 5px;&#10;  cursor: pointer;&#10;}</textarea
-          >
+          <div class="editor-wrapper">
+            <textarea id="css-code" spellcheck="false">body {
+  font-family: sans-serif;
+  padding: 20px;
+  text-align: center;
+}
+
+h1 {
+  color: #6c5ce7;
+}
+
+button {
+  background: #6c5ce7;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}</textarea>
+            <div class="highlight-layer"><pre><code id="css-highlight" class="language-css"></code></pre></div>
+          </div>
         </div>
       </div>
 
       <!-- Output window -->
       <div class="preview-pane">
-        <div
-          class="editor-label"
-          style="background: #13131a; border-bottom: 2px solid #2d2d37"
-        >
+        <div class="editor-label" style="background: #13131a; border-bottom: 2px solid #2d2d37">
           Live Preview
         </div>
         <iframe id="preview-window"></iframe>
       </div>
     </div>
 
+    <!-- Core Token Parser script -->
+    <script src="https://cloudflare.com"></script>
     <script>
       const htmlEditor = document.getElementById("html-code");
       const cssEditor = document.getElementById("css-code");
+      const htmlHighlight = document.getElementById("html-highlight");
+      const cssHighlight = document.getElementById("css-highlight");
       const previewFrame = document.getElementById("preview-window");
       const runButton = document.getElementById("run-btn");
+
+      // Function to render the syntax colors
+      function applySyntaxHighlighting() {
+        // Handle HTML formatting
+        let htmlText = htmlEditor.value;
+        if(htmlText.endsWith("\n")) { htmlText += " "; }
+        htmlHighlight.textContent = htmlText;
+        Prism.highlightElement(htmlHighlight);
+
+        // Handle CSS formatting
+        let cssText = cssEditor.value;
+        if(cssText.endsWith("\n")) { cssText += " "; }
+        cssHighlight.textContent = cssText;
+        Prism.highlightElement(cssHighlight);
+      }
+
+      // Feature: Automatic Tag Closing for HTML
+      htmlEditor.addEventListener("keydown", function(e) {
+        if (e.key === ">") {
+          const start = this.selectionStart;
+          const end = this.selectionEnd;
+          const text = this.value;
+          
+          // Find the last opened tag preceding the cursor
+          const beforeCursor = text.substring(0, start);
+          const tagMatch = beforeCursor.match(/<([a-zA-Z1-6]+)(?:\s+[^>]*)*$/);
+          
+          if (tagMatch) {
+            const tagName = tagMatch[1];
+            e.preventDefault();
+            
+            // Insert the closing tag pair cleanly
+            this.value = text.substring(0, start) + ">" + "</" + tagName + ">" + text.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+            applySyntaxHighlighting();
+          }
+        }
+      });
+
+      // Synchronize box scrolling actions
+      htmlEditor.addEventListener("scroll", function() {
+        htmlHighlight.parentElement.scrollTop = htmlEditor.scrollTop;
+        htmlHighlight.parentElement.scrollLeft = htmlEditor.scrollLeft;
+      });
+      cssEditor.addEventListener("scroll", function() {
+        cssHighlight.parentElement.scrollTop = cssEditor.scrollTop;
+        cssHighlight.parentElement.scrollLeft = cssEditor.scrollLeft;
+      });
 
       function updatePreview() {
         const htmlContent = htmlEditor.value;
         const cssContent = cssEditor.value;
 
-        // Build the document structure combining both inputs
         const completeSource = `
                 <!DOCTYPE html>
                 <html lang="en">
@@ -164,20 +264,19 @@ body {&#10;  font-family: sans-serif;&#10;  padding: 20px;&#10;  text-align: cen
                 </html>
             `;
 
-        // Write directly to the iframe document object
-        const targetDoc =
-          previewFrame.contentDocument || previewFrame.contentWindow.document;
+        const targetDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
         targetDoc.open();
         targetDoc.write(completeSource);
         targetDoc.close();
       }
 
-      // Action triggers: typing in boxes or clicking the button
-      htmlEditor.addEventListener("input", updatePreview);
-      cssEditor.addEventListener("input", updatePreview);
+      // Live update listening hooks
+      htmlEditor.addEventListener("input", () => { applySyntaxHighlighting(); updatePreview(); });
+      cssEditor.addEventListener("input", () => { applySyntaxHighlighting(); updatePreview(); });
       runButton.addEventListener("click", updatePreview);
 
-      // Initial setup run
+      // Initial deployment call setup
+      applySyntaxHighlighting();
       updatePreview();
     </script>
   </body>
